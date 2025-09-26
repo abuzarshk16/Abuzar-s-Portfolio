@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Updated Title -->
+    <title>BSSE Portfolio | Abuzar Shahzad</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Three.js for 3D background -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- CUSTOM SKY BLUE COLOR PALETTE SETUP --- */
+        :root {
+            --color-primary: #0EA5E9; /* sky-500 */
+            --color-light: #BAE6FD;   /* sky-200 */
+            --color-bg-subtle: #F0F8FF; /* Very light blue background (Alice Blue) */
+            --color-text-dark: #1F2937;
+        }
+
+        /* --- GLOBAL STYLES & FLOATING WRAPPER --- */
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-subtle); 
+            color: var(--color-text-dark); 
+            overflow-x: hidden;
+            min-height: 100vh;
+            padding: 0; 
+            position: relative; 
+        }
+        
+        /* New Canvas Styles for 3D BG (Galaxy Effect) */
+        #threejs-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; 
+            opacity: 0.9; 
+        }
+
+        /* The main container matching the floating card look */
+        #app-wrapper {
+            position: relative; 
+            max-width: 1400px;
+            margin: 2rem auto; 
+            background-color: #FFFFFF;
+            border-radius: 2rem;
+            /* Stronger shadow for floating effect */
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15), 0 0 10px rgba(0, 0, 0, 0.1); 
+            min-height: calc(100vh - 4rem); 
+            overflow: hidden; 
+            z-index: 10; /* Ensures the portfolio card is above the 3D BG */
+        }
+        
+        /* --- STYLING FOR SEPARATE DIVISION BOXES --- */
+        .section-box {
+            background-color: #FFFFFF;
+            /* Large radius for distinct box look */
+            border-radius: 2rem; 
+            /* Sky-blue-tinted shadow for the 'glow' effect */
+            box-shadow: 0 15px 40px rgba(14, 165, 233, 0.1), 0 0 10px rgba(0, 0, 0, 0.05); 
+            transition: all 0.5s ease-in-out;
+            border: 1px solid #e0f2fe; /* Light sky blue border for structure */
+        }
+        /* Hover effect for the main division boxes */
+        .section-box:hover {
+            box-shadow: 0 20px 60px rgba(14, 165, 233, 0.25), 0 0 20px rgba(14, 165, 233, 0.1);
+            transform: translateY(-5px);
+        }
+        
+        /* --- INTRO OVERLAY --- */
+        #intro-overlay {
+            /* Full-screen overlay with light blue gradient */
+            background: linear-gradient(135deg, #F0F8FF 0%, #E0F7FF 100%); 
+        }
+
+        /* --- INTRO & TYPING ANIMATIONS --- */
+        .loads-sexy-font {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: clamp(4rem, 15vw, 10rem);
+            color: var(--color-primary); 
+            /* Sky blue text shadow */
+            text-shadow: 0 0 20px rgba(14, 165, 233, 0.7); 
+            opacity: 0;
+            transform: scale(0.9);
+            will-change: transform, opacity;
+        }
+        @keyframes sexyFadeIn {
+            0% { opacity: 0; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes sexyFadeOut {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.2); filter: blur(10px); }
+        }
+        .typing-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1.2em;
+            background-color: var(--color-primary);
+            margin-left: 5px;
+            animation: blink 0.7s step-end infinite;
+        }
+        @keyframes blink {
+            from, to { visibility: hidden; }
+            50% { visibility: visible; }
+        }
+
+        /* --- 3D TILT EFFECT (Projects Cards) --- */
+        .card-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out; 
+            will-change: transform, box-shadow;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+        .perspective-container { 
+            perspective: 1000px; 
+            display: block;
+        }
+        
+        /* Pulsate for CTA */
+        @keyframes pulsate {
+            0%, 100% { box-shadow: 0 0 10px rgba(14, 165, 233, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.8); }
+        }
+        /* Updated class name to reflect new color */
+        .glow-btn-sky { animation: pulsate 3s infinite ease-in-out; }
+
+        /* --- VIEW MANAGEMENT --- */
+        .view {
+            display: none;
+            animation: fadeIn 0.5s ease-out forwards;
+            min-height: 80vh;
+        }
+        .view.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Custom image styling to make the profile picture ROUND */
+        .profile-image-container {
+            /* Critical change: 50% border radius for perfect circle */
+            border-radius: 50%;
+            /* Ensures the image itself fills the square without cropping (if 'contain' is desired) */
+            background-color: #f7f3f9; 
+            border: 4px solid var(--color-light); /* Light blue border */
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .profile-image {
+            object-fit: cover; 
+            /* Critical change: 50% border radius for perfect circle crop */
+            border-radius: 50%; 
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- 3D Background Canvas (sits behind the app-wrapper) -->
+    <canvas id="threejs-bg"></canvas>
+
+    <!-- 1. INTRO/HERO SECTION (Full Screen Overlay for smooth transition) -->
+    <div id="intro-overlay" class="fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-1000 ease-in-out">
+        <div id="intro-container" class="relative z-10 w-full text-center p-4">
+            <!-- Content loads here via JavaScript -->
+        </div>
+    </div>
+
+    <!-- Main Application Wrapper (The outer floating box) -->
+    <div id="app-wrapper">
+
+        <!-- --- NAVIGATION BAR --- -->
+        <header id="main-header" class="w-full z-50 p-6 md:px-12">
+            <nav class="flex justify-between items-center">
+                <!-- Name Change: Abuzar Shahzad's Portfolio -->
+                <a href="#" onclick="showView('home-view')" class="text-2xl font-extrabold tracking-wider flex items-center gap-2"> 
+                    <!-- Updated text color to sky-500 -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-sky-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3 14h-6v-2h6v2zm0-4h-6V8h6v4z"/></svg>
+                    Abuzar Shahzad's Portfolio
+                </a>
+                <div class="flex items-center space-x-4 md:space-x-8">
+                    <div class="hidden md:flex items-center space-x-6">
+                        <a href="#projects-section" class="text-gray-600 hover:text-sky-500 transition-colors duration-300">Projects</a>
+                        <a href="#skills-section" class="text-gray-600 hover:text-sky-500 transition-colors duration-300">Skills</a>
+                        <button onclick="showView('contact-view')" class="text-gray-600 hover:text-sky-500 transition-colors duration-300">Contact</button>
+                    </div>
+                    <!-- Updated button colors to sky-500/400 -->
+                    <button onclick="showView('contact-view')" class="bg-sky-500 text-white font-semibold py-2 px-5 rounded-xl shadow-lg hover:bg-sky-400 transition-all duration-300 transform hover:scale-105">
+                        Hire Me
+                    </button>
+                </div>
+            </nav>
+        </header>
+
+        <main class="relative z-10">
+            
+            <!-- 2. HOME VIEW (Main Portfolio Content - Divided into spaced boxes) -->
+            <!-- Applying space-y to separate the division boxes -->
+            <div id="home-view" class="view px-4 md:px-8 pb-12 opacity-0 transition-opacity duration-1000 space-y-12 md:space-y-16">
+
+                <!-- Division Box 1: Student Profile / Overview -->
+                <section id="profile-overview" class="section-box text-center p-8 md:p-16">
+                    <div class="container mx-auto px-0">
+                        <div class="flex flex-col md:flex-row items-center justify-center gap-12">
+                            
+                            <!-- Profile Picture Container (Now round) -->
+                            <div class="w-32 h-32 md:w-48 md:h-48 profile-image-container">
+                                
+                                <!-- SOURCE IS NOW CORRECTLY POINTING TO profile.jpg -->
+                                <img src="profile.jpg" 
+                                     alt="Abuzar Shahzad Profile Picture" 
+                                     class="w-full h-full profile-image"
+                                     onerror="this.onerror=null;this.src='https://placehold.co/500x500/BAE6FD/0EA5E9?text=A.S.';">
+                            </div>
+
+                            <!-- Title and Status -->
+                            <div class="text-center md:text-left">
+                                <p class="text-xl font-medium text-gray-500 mb-2">5th Semester | BS Software Engineering</p>
+                                <!-- Updated Name and text color to sky-500 -->
+                                <h1 class="text-5xl md:text-7xl font-extrabold text-sky-500 leading-tight mb-4">
+                                    Abuzar Shahzad
+                                </h1>
+                                <p class="text-lg text-gray-700 max-w-xl">
+                                    A passionate software developer specializing in modern **Full Stack development**, **Clean Architecture**, and **Marketing Strategy**. Currently focused on Data Structures, Web Technologies, and mastering **C++ and Python**. 
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Division Box 2: Project Cards -->
+                <section id="projects-section" class="section-box p-8 md:p-16">
+                    <div class="container mx-auto px-0">
+                        <div class="text-center mb-16">
+                            <!-- Updated text color to sky-500 -->
+                            <h2 class="text-4xl font-bold text-sky-500">Featured Projects</h2>
+                            <p class="text-gray-600 mt-2">Highlights from my academic and personal development journey.</p>
+                        </div>
+                        <div class="grid md:grid-cols-3 gap-10">
+                            
+                            <!-- Project Card 1: E-Commerce API (Backend Focus) -->
+                            <div class="perspective-container">
+                                <!-- Updated border hover color to sky-300 -->
+                                <div class="card-3d bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center hover:border-sky-300">
+                                    <h3 class="text-2xl font-bold text-gray-800 mb-3">E-Commerce REST API</h3>
+                                    <p class="text-gray-700">Built a robust backend using Node.js and MongoDB for scalable product and user management.</p>
+                                    <!-- Updated badge colors to sky-100/800 -->
+                                    <span class="inline-block mt-4 bg-sky-100 text-sky-800 text-sm font-medium px-3 py-1 rounded-full">Node.js, Express, MongoDB</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Project Card 2: DSA Visualizer (Algorithm Focus) -->
+                            <div class="perspective-container">
+                                <!-- Updated border hover color to sky-300 -->
+                                <div class="card-3d bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center transform md:scale-105 hover:border-sky-300">
+                                    <h3 class="text-2xl font-bold text-gray-800 mb-3">DSA Visualizer</h3>
+                                    <p class="text-gray-700">An interactive web tool to visualize sorting algorithms and graph traversals for better understanding.</p>
+                                    <!-- Updated badge colors to sky-100/800 -->
+                                    <span class="inline-block mt-4 bg-sky-100 text-sky-800 text-sm font-medium px-3 py-1 rounded-full">JavaScript, HTML Canvas, Algorithms</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Project Card 3: University Management App (Desktop Focus) -->
+                            <div class="perspective-container">
+                                <!-- Updated border hover color to sky-300 -->
+                                <div class="card-3d bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center hover:border-sky-300">
+                                    <h3 class="text-2xl font-bold text-gray-800 mb-3">UIMS Desktop Client</h3>
+                                    <p class="text-gray-700">A C# based Windows Forms application for managing student enrollments and course records.</p>
+                                    <!-- Updated badge colors to sky-100/800 -->
+                                    <span class="inline-block mt-4 bg-sky-100 text-sky-800 text-sm font-medium px-3 py-1 rounded-full">C#, SQL Server, Desktop App</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Division Box 3: Skills & Coursework Section -->
+                <section id="skills-section" class="section-box p-8 md:p-16">
+                    <div class="container mx-auto px-0">
+                        <div class="text-center mb-12">
+                            <!-- Updated text color to sky-500 -->
+                            <h2 class="text-4xl font-bold text-sky-500">Core Technical Skills</h2>
+                            <p class="text-gray-600 mt-2">Tools and technologies mastered up to the 5th semester.</p>
+                        </div>
+                        
+                        <!-- Grid of skill categories -->
+                        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            
+                            <!-- Skill Category 1: Frontend -->
+                            <!-- Updated border hover color to sky-300 -->
+                            <div class="p-6 bg-white rounded-xl shadow-md border border-gray-100 transition duration-300 hover:border-sky-300 hover:shadow-lg">
+                                <h4 class="text-xl font-semibold text-gray-800 mb-3 border-b pb-2">Frontend</h4>
+                                <ul class="space-y-2 text-gray-700">
+                                    <li>React.js (Basic)</li>
+                                    <li>HTML5 / CSS3 / JavaScript</li>
+                                    <li>Tailwind CSS (Proficient)</li>
+                                </ul>
+                            </div>
+
+                            <!-- Skill Category 2: Backend & DB (Merged) -->
+                            <!-- Updated border hover color to sky-300 -->
+                            <div class="p-6 bg-white rounded-xl shadow-md border border-gray-100 transition duration-300 hover:border-sky-300 hover:shadow-lg">
+                                <h4 class="text-xl font-semibold text-gray-800 mb-3 border-b pb-2">Backend & Data</h4>
+                                <ul class="space-y-2 text-gray-700">
+                                    <li>**C++** (DSA)</li>
+                                    <li>**Python**</li> 
+                                    <li>Node.js / Express</li>
+                                    <li>SQL / MongoDB</li>
+                                    
+                                </ul>
+                            </div>
+
+                            <!-- Skill Category 3: Business & Strategy -->
+                            <!-- Updated border hover color to sky-300 -->
+                            <div class="p-6 bg-white rounded-xl shadow-md border border-gray-100 transition duration-300 hover:border-sky-300 hover:shadow-lg">
+                                <h4 class="text-xl font-semibold text-gray-800 mb-3 border-b pb-2">Business & Strategy</h4>
+                                <ul class="space-y-2 text-gray-700">
+                                    <li>**Marketing Expert**</li> 
+                                    <li>Clean Architecture</li>
+                                    <li>Project Management</li>
+                                </ul>
+                            </div>
+                            
+                             <!-- Skill Category 4: Current Semester (5th) -->
+                            <!-- Updated background, text, and border colors to sky variants -->
+                            <div class="p-6 bg-sky-50/70 rounded-xl shadow-md border border-sky-100 transition duration-300 hover:border-sky-400 hover:shadow-xl">
+                                <h4 class="text-xl font-semibold text-sky-500 mb-3 border-b border-sky-200 pb-2">Current Focus (5th Sem)</h4>
+                                <ul class="space-y-2 text-gray-700 font-medium">
+                                    <li>Data Structures & Algorithms</li>
+                                    <li>Operating Systems</li>
+                                    <li>Web Engineering</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Division Box 4: CTA to Contact (Smaller, centered box) -->
+                <section class="section-box text-center p-8 md:p-12 max-w-5xl mx-auto">
+                    <h3 class="text-3xl font-bold text-gray-800 mb-4">Ready to Discuss a Project?</h3>
+                    <p class="text-lg text-gray-600 mb-8">Let's build something exceptional together. I'm available for freelance work and final year projects.</p>
+                     <!-- Updated button colors and class name -->
+                     <button onclick="showView('contact-view')" class="bg-sky-500 text-white font-bold py-4 px-10 rounded-full text-lg shadow-xl hover:bg-sky-400 transition-all duration-300 transform hover:scale-105 glow-btn-sky">
+                        Send a Message Now
+                    </button>
+                </section>
+
+            </div> <!-- End of home-view -->
+
+            <!-- 3. CONTACT VIEW (Separate full-screen page feel) -->
+            <div id="contact-view" class="view hidden p-4 md:p-8">
+                <section class="py-16 max-w-3xl mx-auto">
+                    <div class="text-center mb-12">
+                        <!-- Updated text color to sky-500 -->
+                        <h2 class="text-5xl font-extrabold text-sky-500 mb-3">Get In Touch</h2>
+                        <p class="text-lg text-gray-600">I'm currently seeking internships and freelance opportunities. Feel free to contact me for any project inquiries or collaborations.</p>
+                    </div>
+
+                    <!-- Contact Form Box -->
+                    <div class="section-box p-8 rounded-2xl shadow-xl border border-gray-100">
+                         <!-- ACTION REQUIRED: Replace YOUR_FORMSPREE_ENDPOINT with your actual Formspree endpoint -->
+                        <form action="YOUR_FORMSPREE_ENDPOINT" method="POST" id="contact-form">
+                            <div class="mb-5">
+                                <label for="contact-name" class="block text-gray-700 font-medium mb-1">Your Name</label>
+                                <!-- Updated focus color to sky-500 -->
+                                <input type="text" id="contact-name" name="name" required class="w-full p-3 border border-gray-300 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-shadow">
+                            </div>
+                            <div class="mb-5">
+                                <label for="contact-email" class="block text-gray-700 font-medium mb-1">Your Email</label>
+                                <!-- Updated focus color to sky-500 -->
+                                <input type="email" id="contact-email" name="email" required class="w-full p-3 border border-gray-300 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-shadow">
+                            </div>
+                            <div class="mb-6">
+                                <label for="contact-message" class="block text-gray-700 font-medium mb-1">How can I help you?</label>
+                                <!-- Updated focus color to sky-500 -->
+                                <textarea id="contact-message" name="message" rows="5" required class="w-full p-3 border border-gray-300 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-shadow"></textarea>
+                            </div>
+                            
+                            <input type="hidden" name="_subject" value="New Portfolio Inquiry from Website" />
+
+                            <!-- Updated button colors and class name -->
+                            <button type="submit" class="w-full bg-sky-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-sky-400 transition-colors glow-btn-sky">
+                                Send Message
+                            </button>
+                        </form>
+                        <div id="form-status" class="mt-4 text-center text-green-600 font-semibold hidden">Thank you! Your message has been sent.</div>
+                    </div>
+                </section>
+            </div> <!-- End of contact-view -->
+
+        </main>
+        
+        <!-- Footer -->
+        <footer id="main-footer" class="bg-gray-100/70 border-t border-gray-200 rounded-b-2xl p-6 md:p-8">
+            <div class="container mx-auto px-6">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="text-center md:text-left mb-4 md:mb-0">
+                        <!-- Updated text color to sky-500 -->
+                        <p class="text-lg font-bold text-sky-500 tracking-wider">Abuzar Shahzad's Portfolio</p>
+                        <p class="text-gray-600 mt-1">BSSE | 5th Semester</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-gray-600">© 2025 Portfolio. All Rights Reserved.</p>
+                        <p class="text-xs text-gray-500">Built with 💖 and Code.</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+    </div> <!-- End of app-wrapper -->
+
+    <!-- Scroll to Top Button (The sliding cursor) -->
+    <!-- Updated button colors to sky-500/400 and class name -->
+    <button id="scrollToTopBtn" class="fixed bottom-6 right-6 p-3 bg-sky-500 text-white rounded-full shadow-xl transition-all duration-300 transform opacity-0 translate-y-10 hover:bg-sky-400 z-50">
+        <!-- Up Arrow SVG Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+    </button>
+
+    <script>
+        // --- VIEW NAVIGATION LOGIC ---
+        let introCompleted = false;
+        
+        function showView(viewId, hideIntro = true) {
+            // Hide all views
+            document.querySelectorAll('.view').forEach(view => {
+                view.classList.remove('active');
+                view.classList.add('hidden');
+            });
+
+            // Show the requested view
+            const activeView = document.getElementById(viewId);
+            if (activeView) {
+                activeView.classList.remove('hidden');
+                activeView.classList.add('active');
+                
+                // Hide the main intro section content if navigating away
+                if (hideIntro) {
+                    const introOverlay = document.getElementById('intro-overlay');
+                    if (introOverlay) introOverlay.style.display = 'none';
+                    // Scroll to the top of the app wrapper when navigating
+                    document.getElementById('app-wrapper').scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }
+        }
+        
+        // --- INTRO ANIMATION SEQUENCE LOGIC ---
+        
+        const introContainer = document.getElementById('intro-container');
+        const homeView = document.getElementById('home-view');
+        
+        // Updated text for Phase 2: "Zaree here"
+        const phaseTwoText = `Zaree here`;
+        const phaseThreeText = `Let's move to my Profile.`;
+        const typingSpeed = 40; 
+        
+        function startIntroSequence() {
+            // PHASE 1: "WELCOME ;)" Reveal (3.5s Fade In/Out)
+            introContainer.innerHTML = `<h1 id="loads-reveal" class="loads-sexy-font">WELCOME ;)</h1>`;
+            const loadsReveal = document.getElementById('loads-reveal');
+            
+            loadsReveal.style.animation = 'sexyFadeIn 1.5s ease-in-out forwards';
+
+            setTimeout(() => {
+                loadsReveal.style.animation = 'sexyFadeOut 1s ease-in-out forwards';
+            }, 3000); 
+
+            setTimeout(() => {
+                phaseTwo(); // Start the new Phase 2
+            }, 4200);
+        }
+
+        function phaseTwo() {
+            // PHASE 2: "Zaree here" Reveal (3.5s Fade In/Out)
+            introContainer.innerHTML = `<h1 id="beenu-reveal" class="loads-sexy-font">${phaseTwoText}</h1>`;
+            const beenuReveal = document.getElementById('beenu-reveal');
+            
+            beenuReveal.style.animation = 'sexyFadeIn 1.5s ease-in-out forwards';
+
+            setTimeout(() => {
+                beenuReveal.style.animation = 'sexyFadeOut 1s ease-in-out forwards';
+            }, 3000); 
+
+            setTimeout(() => {
+                phaseThree(); // Start the new Phase 3 (Typing)
+            }, 4200);
+        }
+
+        function phaseThree() {
+            // PHASE 3: Typing "Let's move to my Profile." (Typing effect)
+            introContainer.innerHTML = `
+                <h2 id="typing-text-container" class="text-xl md:text-3xl font-semibold text-gray-800 mb-8 max-w-4xl mx-auto p-4 md:p-8 rounded-xl bg-white/70 backdrop-blur-sm shadow-xl"></h2>
+            `;
+            
+            const element = document.getElementById('typing-text-container');
+            let i = 0;
+            
+            // Setting up the typing span and cursor
+            element.innerHTML = `<span id="typing-span"></span><span class="typing-cursor"></span>`;
+            const span = document.getElementById('typing-span');
+            const cursor = element.querySelector('.typing-cursor');
+
+            function type() {
+                if (i < phaseThreeText.length) {
+                    span.textContent += phaseThreeText.charAt(i);
+                    i++;
+                    setTimeout(type, typingSpeed);
+                } else {
+                    cursor.style.display = 'none';
+                    setTimeout(revealHomeContent, 1000); // Wait 1 second after typing completes
+                }
+            }
+            type();
+        }
+        
+        function revealHomeContent() {
+            // PHASE 4: Transition to the Home View (Smooth fade out of overlay)
+            introCompleted = true;
+            
+            const introOverlay = document.getElementById('intro-overlay');
+            
+            // 1. Start fading out the overlay
+            introOverlay.style.opacity = 0;
+
+            // 2. Immediately show the home view
+            showView('home-view', false); 
+            homeView.style.opacity = 1; 
+            
+            // 3. Remove the overlay from the DOM after the transition is complete
+            setTimeout(() => {
+                introOverlay.style.display = 'none';
+            }, 1000); // Matches transition time
+        }
+
+
+        // --- CONTACT FORM SUBMISSION LOGIC (Unchanged) ---
+
+        const form = document.getElementById('contact-form');
+        const formStatus = document.getElementById('form-status');
+        
+        form.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const data = new FormData(e.target);
+            
+            try {
+                // IMPORTANT: Replace the placeholder action with a real Formspree endpoint if using this live
+                const response = await fetch(e.target.action, { 
+                    method: form.method,
+                    body: data,
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    formStatus.textContent = "Message received! I'll be in touch soon.";
+                    formStatus.classList.remove('hidden', 'text-red-500');
+                    formStatus.classList.add('text-green-600');
+                    form.reset();
+                    // Optionally transition back to home after success
+                    setTimeout(() => {
+                        showView('home-view');
+                        formStatus.classList.add('hidden');
+                    }, 3000);
+                } else {
+                    formStatus.textContent = "Error: Failed to send message. Please check the Formspree endpoint.";
+                    formStatus.classList.remove('hidden', 'text-green-600');
+                    formStatus.classList.add('text-red-500');
+                }
+            } catch (error) {
+                console.error("Submission failed:", error);
+                formStatus.textContent = "Network error. Please try again later.";
+                formStatus.classList.remove('hidden', 'text-green-600');
+                formStatus.classList.add('text-red-500');
+            }
+        });
+
+
+        // --- 3D TILT HOVER EFFECT LOGIC (Unchanged) ---
+        
+        document.querySelectorAll('.perspective-container').forEach(container => {
+            const card = container.querySelector('.card-3d');
+            if (!card) return;
+
+            container.addEventListener('mousemove', (e) => {
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = ((y - centerY) / centerY) * -3; 
+                const rotateY = ((x - centerX) / centerX) * 3;
+
+                card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.01)`;
+                // Subtle shadow with sky blue glow (using the new color)
+                card.style.boxShadow = `0 15px 30px rgba(14, 165, 233, 0.2), 0 0 15px rgba(14, 165, 233, 0.05)`;
+            });
+
+            container.addEventListener('mouseleave', () => {
+                card.style.transform = 'rotateX(0) rotateY(0) scale(1)';
+                card.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.08), 0 0 3px rgba(0, 0, 0, 0.05)';
+            });
+        });
+
+
+        // --- SCROLL TO TOP LOGIC (Sliding Cursor) ---
+
+        const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+        const scrollThreshold = 300; // Pixels to scroll before the button appears
+
+        function handleScroll() {
+            // Check if we are scrolling the main window
+            if (window.scrollY > scrollThreshold) {
+                // Show button: move up (translateY-0) and become opaque (opacity-100)
+                scrollToTopBtn.classList.remove('opacity-0', 'translate-y-10');
+                scrollToTopBtn.classList.add('opacity-100', 'translate-y-0');
+            } else {
+                // Hide button: move down and become transparent
+                scrollToTopBtn.classList.remove('opacity-100', 'translate-y-0');
+                scrollToTopBtn.classList.add('opacity-0', 'translate-y-10');
+            }
+        }
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+        
+        // --- 3D BACKGROUND (THREE.JS - Galaxy/Star Effect) LOGIC ---
+        let scene, camera, renderer, particles, geometry;
+
+        function initThreeJS() {
+            const container = document.getElementById('threejs-bg');
+            
+            // 1. Scene setup
+            scene = new THREE.Scene();
+            
+            // 2. Camera setup: Wider FOV and deeper clipping for a large star field
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1500); 
+            camera.position.z = 1000; 
+
+            // 3. Renderer setup
+            renderer = new THREE.WebGLRenderer({ canvas: container, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0); // Transparent background
+
+            // 4. Geometry (Particles)
+            geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            const particleCount = 10000; // High count for star density
+            const particleSpread = 2000; // Large volume for galaxy feel
+
+            for (let i = 0; i < particleCount; i++) {
+                // Spread particles randomly in a large volume
+                const x = (Math.random() - 0.5) * particleSpread;
+                const y = (Math.random() - 0.5) * particleSpread;
+                const z = (Math.random() - 0.5) * particleSpread;
+                vertices.push(x, y, z);
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+            // 5. Material (White dots for stars)
+            const material = new THREE.PointsMaterial({ 
+                color: 0xFFFFFF, // White stars
+                size: 0.5, // Tiny size
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 0.9
+            });
+
+            // 6. Mesh (Add to scene)
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+
+            // Start animation loop
+            animateThreeJS();
+        }
+
+        function animateThreeJS() {
+            requestAnimationFrame(animateThreeJS);
+
+            // Gentle movement (slow rotation and drift)
+            if (particles) {
+                particles.rotation.x += 0.00005; // Very slow rotation
+                particles.rotation.y += 0.0001;
+                particles.position.z += 0.1; // Slow drift forward (simulating movement through space)
+                
+                // When particles drift too close to the camera, reset them for a continuous effect
+                if (particles.position.z > 500) {
+                     particles.position.z = -500;
+                }
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+
+        // --- Initialization on Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initThreeJS(); // Initialize 3D background
+            startIntroSequence(); // Start the intro sequence immediately
+            
+            // Attach scroll listener to window and click listener to button
+            window.addEventListener('scroll', handleScroll);
+            scrollToTopBtn.addEventListener('click', scrollToTop);
+        });
+    </script>
+
+</body>
+</html>
